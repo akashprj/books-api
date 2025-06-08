@@ -1,0 +1,88 @@
+from flask import Flask, jsonify, request
+
+app = Flask(__name__)
+
+# In-memory book data
+books = [
+    {"id": 1, "title": "Book 1", "author": "Author 1"},
+    {"id": 2, "title": "Book 2", "author": "Author 2"},
+    {"id": 3, "title": "Book 3", "author": "Author 3"},
+    {"id": 4, "title": "Book 4", "author": "Author 4"},
+    {"id": 5, "title": "Book 5", "author": "Author 5"}
+]
+
+# Home route
+@app.route("/", methods=["GET"])
+def home():
+    return jsonify({"message": "Welcome to the Book API"})
+
+# Get all books
+@app.route("/books", methods=["GET"])
+def get_books():
+    return jsonify(books)
+
+# Search books by title (query param: ?title=Book 2)->http://127.0.0.1:5000/books/search?title=Book 2
+@app.route("/books/search", methods=["GET"])
+def search_books():
+    title = request.args.get("title")
+    filtered_books = []
+
+    for book in books:
+        if book["title"] == title:
+            filtered_books.append(book)
+
+    if not filtered_books:
+        return jsonify({"error": "Book not found"}), 404
+
+    return jsonify(filtered_books)
+
+# Get book by ID
+@app.route("/books/<int:book_id>", methods=["GET"])
+def get_book(book_id):
+    for book in books:
+        if book["id"] == book_id:
+            return jsonify(book)
+    return jsonify({"error": "Book not found"}), 404
+
+# Add a new book
+@app.route("/books", methods=["POST"])
+def add_book():
+    data = request.get_json()
+
+    new_book = {
+        "id": data["id"],
+        "title": data["title"],
+        "author": data["author"]
+    }
+
+    books.append(new_book)
+    return jsonify({"message": "Book added successfully"}), 201
+
+# Update existing book
+@app.route("/books/<int:book_id>", methods=["PUT"])
+def update_book(book_id):
+    data = request.get_json()
+    for book in books:
+        if book["id"] == book_id:
+            book["title"] = data["title"]
+            book["author"] = data["author"]
+            return jsonify({"message": "Book updated successfully"})
+    return jsonify({"error": "Book not found"}), 404
+
+# Delete book by ID
+@app.route("/books/<int:book_id>", methods=["DELETE"])
+def delete_book(book_id):
+    for book in books:
+        if book["id"] == book_id:
+            books.remove(book)
+            return jsonify({"message": "Book deleted successfully"})
+    return jsonify({"error": "Book not found"}), 404
+
+# Error handler for unhandled exceptions
+@app.errorhandler(500)
+def handle_internal_error(e):
+    return jsonify({"error": "Something went wrong"}), 500
+
+# Run the app
+if __name__ == "__main__":
+    app.run(debug=True)
